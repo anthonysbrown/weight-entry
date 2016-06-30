@@ -16,10 +16,14 @@ if ( $args && is_array( $args ) ) {
 	}
 
 
+ob_start();
+
 
 	include( $located );
 
+$buffer = ob_get_clean();
 
+return $buffer;
 
 	
 	

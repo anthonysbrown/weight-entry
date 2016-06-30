@@ -19,3 +19,6 @@
 a.glyph-button{ text-decoration:none;color:#000}
 a:hover.glyph-button{ text-decoration:none;color: #6C0003}
 .hide-progress{display:none;}
+
+.wt-weight-on{background-color:#bcffb9;color:green}
+.wt-weight-off{background-color:#CCC;color:#000}

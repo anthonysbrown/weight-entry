@@ -7,10 +7,10 @@ add_action('admin_menu', array($sb_admin_members, 'menu'));
 
 
 add_action( 'wp_ajax_members_send_email', array($sb_admin_members, 'send_email') );
-add_action( 'wp_ajax_nopriv_members_send_email', array($sb_admin_members, 'send_email') );
+
 
 add_action( 'wp_ajax_members_mark_viewed', array($sb_admin_members, 'mark_viewed') );
-add_action( 'wp_ajax_nopriv_members_mark_viewed', array($sb_admin_members, 'mark_viewed') );
+
 
 
 if ( ! wp_next_scheduled( 'members_daily_email_send' ) ) {
@@ -90,6 +90,10 @@ wp_mail( get_option( 'admin_email'),'[simplebalance.ca][Daily Weight Entry Repor
 	function mark_viewed(){
 		
 		
+		update_option('wt_weight_row_'.$_POST['id'].'', $_POST['status']);
+		
+		echo json_encode($_POST);
+		
 	die();	
 	}
 	function table($r){
@@ -155,26 +159,26 @@ $dropdown = get_users( $args );
 			$user = get_userdata($user_id);
 			
 			
-			if(strtotime(date("Y-m-d",strtotime($entry[0]['date']))) >= strtotime(date("Y-m-d",get_option('sb_admin_members_last_view_'.$current_user->ID.'' )))){
-			$bg= 'background-color:#bcffb9;color:green';	
+			if(get_option('wt_weight_row_'.$entry[0]['id'].'',0) == '' || get_option('wt_weight_row_'.$entry[0]['id'].'',0) == '0' ){
+			$bg= 'wt-weight-on';	
 			$new = '*NEW ';
 			}else{
-			$bg= 'background-color:#CCC;color:#000';
+			$bg= 'wt-weight-off';
 				$new = ' ';		
 			}
 			$h .= '
 			
-			<tr>
-			<td  style="'.$bg.'"><div style="font-weight:bold;margin:5px 0px">'.$new.' '.$user->first_name .' '.$user->last_name .'</div>
+			<tr class="'.$bg.' wt-row-click" data-id="'.$entry[0]['id'].'" data-status="'.get_option('wt_weight_row_'.$entry[0]['id'].'',0).'">
+			<td  ><div style="font-weight:bold;margin:5px 0px">'.$new.' '.$user->first_name .' '.$user->last_name .'</div>
 			<a href="#" class="show-progress-id glyph-button" data-id="'.$entry[0]['id'].'"><span class="dashicons dashicons-plus-alt"></span>View progress</a>
-			<a style="margin-left:15px" href="#TB_inline?width=600&height=550&inlineId=email-user-box" class="thickbox glyph-button email-user-id"  data-id="'.$user->ID.'"><span class="dashicons dashicons-email"></span>Email User</a>
+			<a style="margin-left:15px" href="#TB_inline?width=600&height=550&inlineId=email-user-box" class="thickbox glyph-button email-user-id"  data-id="'.$user->ID.'"  data-coach="'.$entry[0]['coach'].'"><span class="dashicons dashicons-email"></span>Email User</a>
 			 
 			<em style="margin-left:15px">  Last entered: '.date("F j, Y",strtotime($entry[0]['date'])).'</em></td>
-			<td style="background-color:#CCC;color:#000">'.$entry[0]['weight'].'</td>
-						   <td style="background-color:#CCC;color:#000">'.$entry[0]['waist'].'</td>
-							<td style="background-color:#CCC;color:#000">'.$entry[0]['hips'].'</td>
-							 <td style="background-color:#CCC;color:#000">'.$entry[0]['chest'].'</td>
-							  <td style="background-color:#CCC;color:#000">'.$entry[0]['coach'].'</td>
+			<td>'.$entry[0]['weight'].'</td>
+						   <td >'.$entry[0]['waist'].'</td>
+							<td >'.$entry[0]['hips'].'</td>
+							 <td >'.$entry[0]['chest'].'</td>
+							  <td>'.$entry[0]['coach'].'</td>
 			</tr>';
 			
 				for($i=0; $i<count($entry); $i++){
@@ -213,20 +217,31 @@ $dropdown = get_users( $args );
 		
 	}
 	
-	function email_template($body){
+	function email_template($body,$email_coach,$coach_name,$coach){
+		global $sb_weight;
+	$content = we_get_template( 'email.php', array(
+					'body' => $body,
+					'coach_sig' =>$email_coach,
+					'coach' =>$oach,
+					'logo' =>$sb_weight->path('images/logo.png'),
+				) );
+				
+	return $content;			
 		
-	wc_get_template( 'content-product_cat.php', array(
-					'category' => $category
-				) )
+	}
+	function trainer_sig($trainer){
+	global $sb_weight;
+	return $sb_weight-> path('images/'.$trainer.'.png');
 		
 	}
 	function send_email(){
 		global $wpdb;
 		
 				$user = get_userdata($_POST['email_user']);
-				
+				$email_coach = $_POST['email_coach'];
 				$headers[] = 'From: '.get_bloginfo( 'name' ).' <members@simple-balance.ca>';	
-		wp_mail( $user->user_email,$_POST['email_subject'], $_POST['email_body'],$headers);
+				$headers[] = 'Content-type:text/html;charset=UTF-8';
+		wp_mail( $user->user_email,$_POST['email_subject'], $this->email_template($_POST['email_body'],$this->trainer_sig($email_coach),$coach),$headers);
 		
 		echo 'Email sent!';
 		
@@ -249,7 +264,7 @@ $dropdown = get_users( $args );
 		
 		
 		echo '<div id="email-user-box" style="display:none;">
-    <form action="" id="send-email-user"> <input type="hidden" class="email-user" value="">
+    <form action="" id="send-email-user"> <input type="hidden" class="email-user" value=""> <input type="hidden"  value="" class="email-coach">
 	<table width="100%">
 		<tr>
 		<td>Subject</td>

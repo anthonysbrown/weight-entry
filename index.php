@@ -152,7 +152,7 @@ function daysInWeek($weekNum)
 	
 	if($_POST['action'] == 'add'){
 	$wpdb->insert("".$wpdb->prefix ."weights", $insert);
-	$error = '<div class="sb-success">Weight recorded! You can update your weight below until the end of the week.</div>';	
+	$error = '<div class="sb-success">Weight recorded for this week!</div>';	
 	}else{
 	$where['id'] = $_POST['id'];
 	$wpdb->update("".$wpdb->prefix ."weights", $insert,$where);
